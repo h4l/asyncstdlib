@@ -32,7 +32,11 @@ Iterator reducing
 Iterator transforming
 =====================
 
-.. autofunction:: iter(iterable: (async) iter T)
+.. py:function:: iter(subject: (async) iter T)
+    :async-for: :T
+    :noindex:
+
+.. autofunction:: iter(subject: () -> await T, sentinel: T)
     :async-for: :T
 
 .. autofunction:: filter(function: (T) → (await) bool, iterable: (async) iter T)
