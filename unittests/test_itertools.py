@@ -4,7 +4,7 @@ import pytest
 
 import asyncstdlib as a
 
-from .utility import sync, asyncify, awaitify
+from .utility import Schedule, Switch, sync, asyncify, awaitify, multi_sync
 
 
 @sync
@@ -208,6 +208,32 @@ async def test_tee():
     async with a.tee(asyncify(iterable), n=3) as iterators:
         for iterator in iterators:
             assert await a.list(iterator) == iterable
+
+
+# This test currently fails. 1 tee_peer passes as there's no concurrent access
+# to the source iterable.
+@pytest.mark.parametrize("tee_peers", [1, 2])
+@multi_sync
+async def test_tee_concurrent(tee_peers: int):
+    async def async_iterable():
+        for x in [1]:
+            await Switch()
+            yield x
+
+    completed = 0
+
+    async def consume(iter) -> None:
+        nonlocal completed
+        await a.list(iter)
+        completed += 1
+
+    async with a.tee(async_iterable(), n=tee_peers) as iterators:
+        # Concurrently consume each iterator
+        await Schedule(*(consume(iterator) for iterator in iterators))
+
+        # Wait for the consume tasks to finish
+        while completed < tee_peers:
+            await Switch()
 
 
 @sync
